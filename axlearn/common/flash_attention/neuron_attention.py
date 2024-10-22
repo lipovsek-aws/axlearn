@@ -1,5 +1,5 @@
 # Copyright © 2024 Amazon Inc.
-"""Tests for Flash attention on Neuron with NKI kernels."""
+"""Implementation Flash attention for Neuron with NKI kernels."""
 from functools import partial
 
 import jax
