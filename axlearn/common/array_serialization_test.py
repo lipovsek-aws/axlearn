@@ -60,6 +60,16 @@ def get_tensorstore_spec(arr: jax.Array):
         tempdir.cleanup()
 
 
+def skip_if_mesh_too_big(device_number):
+    if device_number == -1:
+        return
+    if device_number > jax.device_count():
+        pytest.skip(
+            # pylint: disable-next=line-too-long
+            f"Device number ({device_number}) is not possible with total {jax.device_count()} number of ranks."
+        )
+
+
 class SerializerTest(parameterized.TestCase):
     """Tests serialization utils."""
 
@@ -335,45 +345,59 @@ class SerializerTest(parameterized.TestCase):
         self.assertTrue(np.all(out_array == np.array(single_device_arr)))
 
     @parameterized.product(
-        max_data_shard_degree=[1, -1, 2, 4, 8], shard_threshold_bytes=[1000 * 1000 * 1000, 1]
+        max_data_shard_degree=[1, -1, 2, 4, 8, 32, 64],
+        shard_threshold_bytes=[1000 * 1000 * 1000, 1],
     )
     @pytest.mark.skipif(
-        jax.device_count() != 8 or jax.process_count() != 1,
-        reason="Incorrect device count for mesh.",
+        jax.device_count() != (64 if jax.default_backend() == "neuron" else 8)
+        or jax.process_count() != 1,
+        reason=f"Incorrect device count ({jax.device_count()}) for the test.",
     )
     def test_shard_info_partially_replicated(
         self, max_data_shard_degree: int, shard_threshold_bytes: int
     ):
+        skip_if_mesh_too_big(max_data_shard_degree)
         single_device_arr = jnp.arange(0, 1024 * 1024).reshape(1024, 1024)
-        devices = mesh_utils.create_device_mesh((8,))
+        devices = mesh_utils.create_device_mesh((jax.device_count(),))
         sharding = PositionalSharding(devices)
 
-        arr = jax.device_put(single_device_arr, sharding.reshape(4, 2).replicate(0))
+        arr = jax.device_put(
+            single_device_arr, sharding.reshape(int(jax.device_count() / 2), 2).replicate(0)
+        )
 
         replica_count = _num_replicas_per_shard(arr)
-        self.assertEqual(replica_count[((None, None, None), (0, 512, None))], 4)
-        self.assertEqual(replica_count[((None, None, None), (512, 1024, None))], 4)
+        self.assertEqual(
+            replica_count[((None, None, None), (0, 512, None))], int(jax.device_count() / 2)
+        )
+        self.assertEqual(
+            replica_count[((None, None, None), (512, 1024, None))], int(jax.device_count() / 2)
+        )
 
         self._verify_shard_info(
             single_device_arr, arr, max_data_shard_degree, shard_threshold_bytes
         )
 
     @parameterized.product(
-        max_data_shard_degree=[1, -1, 2, 4, 8], shard_threshold_bytes=[1000 * 1000 * 1000, 1]
+        max_data_shard_degree=[1, -1, 2, 4, 8, 32, 64],
+        shard_threshold_bytes=[1000 * 1000 * 1000, 1],
     )
     @pytest.mark.skipif(
-        jax.device_count() != 8 or jax.process_count() != 1,
-        reason="Incorrect device count for mesh.",
+        jax.device_count() != (64 if jax.default_backend() == "neuron" else 8)
+        or jax.process_count() != 1,
+        reason=f"Incorrect device count ({jax.device_count()}) for the test.",
     )
     def test_shard_info_fully_sharded(self, max_data_shard_degree: int, shard_threshold_bytes: int):
+        skip_if_mesh_too_big(max_data_shard_degree)
         single_device_arr = jnp.arange(0, 1024 * 1024).reshape(1024, 1024)
-        devices = mesh_utils.create_device_mesh((8,))
+        devices = mesh_utils.create_device_mesh((jax.device_count(),))
         sharding = PositionalSharding(devices)
 
-        arr = jax.device_put(single_device_arr, sharding.reshape(4, 2))
+        arr = jax.device_put(single_device_arr, sharding.reshape(int(jax.device_count() / 2), 2))
 
         replica_count = _num_replicas_per_shard(arr)
-        self.assertEqual(replica_count[((0, 256, None), (0, 512, None))], 1)
+        self.assertEqual(
+            replica_count[((0, int(256 / (jax.device_count() / 8)), None), (0, 512, None))], 1
+        )
 
         self._verify_shard_info(
             single_device_arr, arr, max_data_shard_degree, shard_threshold_bytes
@@ -381,25 +405,27 @@ class SerializerTest(parameterized.TestCase):
 
     @parameterized.product(
         sz=[1, 11, 16, 21],
-        max_data_shard_degree=[1, -1, 2, 4, 8],
+        max_data_shard_degree=[1, -1, 2, 4, 8, 32, 64],
         shard_threshold_bytes=[1000 * 1000 * 1000, 1],
     )
     @pytest.mark.skipif(
-        jax.device_count() != 8 or jax.process_count() != 1,
-        reason="Incorrect device count for mesh.",
+        jax.device_count() != (64 if jax.default_backend() == "neuron" else 8)
+        or jax.process_count() != 1,
+        reason=f"Incorrect device count ({jax.device_count()}) for the test.",
     )
     def test_shard_info_fully_replicated(
         self, sz: int, max_data_shard_degree: int, shard_threshold_bytes: int
     ):
+        skip_if_mesh_too_big(max_data_shard_degree)
         single_device_arr = jnp.arange(0, sz)
-        devices = mesh_utils.create_device_mesh((8,))
+        devices = mesh_utils.create_device_mesh((jax.device_count(),))
         sharding = PositionalSharding(devices)
 
         arr = jax.device_put(single_device_arr, sharding.replicate(0))
 
         replica_count = _num_replicas_per_shard(arr)
         # Fully replicated on 8 devices.
-        self.assertEqual(replica_count[((None, None, None),)], 8)
+        self.assertEqual(replica_count[((None, None, None),)], jax.device_count())
 
         self._verify_shard_info(
             single_device_arr, arr, max_data_shard_degree, shard_threshold_bytes

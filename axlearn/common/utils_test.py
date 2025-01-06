@@ -602,6 +602,8 @@ class TreeUtilsTest(TestCase):
     @parameterized.parameters(
         ((1, 4), ("data", "model"), "data"),
         ((1, 2, 2, 2), ("replica", "data", "fsdp", "model"), ("replica", "data", "fsdp")),
+        ((1, 64), ("data", "model"), "data"),
+        ((1, 4, 4, 4), ("replica", "data", "fsdp", "model"), ("replica", "data", "fsdp")),
     )
     def test_dispatch_shards_input_batch(
         self,
