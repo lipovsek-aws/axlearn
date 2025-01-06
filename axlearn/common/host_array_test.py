@@ -29,13 +29,12 @@ def is_supported(
     global_batch_size: int,
     data_partition: DataPartitionType,
 ):
+    # TODO: consider aggregating skip reasons to efficiently root cause
     if not is_supported_platform(platform):
         return False, f'Platform "{platform}" not supported with devices {jax.devices()}.'
-    if not is_supported_mesh_shape(mesh_shape):
-        return (
-            False,
-            f'Mesh shape "{mesh_shape}" not supported with device_count "{jax.device_count()}".',
-        )
+    mesh_support, reason = is_supported_mesh_shape(mesh_shape)
+    if not mesh_support:
+        pytest.skip(reason)
     if data_partition != DataPartitionType.REPLICATED:
         return (
             False,

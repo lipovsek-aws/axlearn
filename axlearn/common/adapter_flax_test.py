@@ -240,8 +240,9 @@ class FlaxLayerTest(TestCase):
 
     def test_sharding(self):
         mesh_shape = (len(jax.devices()) // 2, 2)
-        if not is_supported_mesh_shape(mesh_shape):
-            pytest.skip(f"Unsupported mesh shape {mesh_shape}")
+        mesh_support, reason = is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
 
         with jax.sharding.Mesh(utils.create_device_mesh(mesh_shape=mesh_shape), ("data", "model")):
             dim = 4

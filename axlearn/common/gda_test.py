@@ -9,6 +9,7 @@ Some tests are intended to be run on TPU.
 import itertools
 
 import jax
+import pytest
 from absl import logging
 from absl.testing import absltest, parameterized
 from jax import numpy as jnp
@@ -38,8 +39,9 @@ class GDATest(TestCase):
             per_host_batch_size,
             data_partition,
         )
-        if not is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
         devices = mesh_utils.create_device_mesh(mesh_shape)
         if data_partition == DataPartitionType.FULL:
             global_batch_size = per_host_batch_size * jax.process_count()

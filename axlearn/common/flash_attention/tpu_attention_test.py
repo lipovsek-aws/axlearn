@@ -92,8 +92,9 @@ class TestFlashAttention(TestCase):
         mesh,
         mesh_axis_names,
     ):
-        if not is_supported_mesh_shape(mesh):
-            pytest.skip(reason=f"Unsupported mesh {mesh}.")
+        mesh_support, reason = is_supported_mesh_shape(mesh)
+        if not mesh_support:
+            pytest.skip(reason)
 
         k1, k2, k3 = jax.random.split(jax.random.PRNGKey(0), 3)
         q = jax.random.normal(

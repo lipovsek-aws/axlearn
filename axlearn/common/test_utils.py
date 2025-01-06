@@ -102,8 +102,8 @@ def is_supported_mesh_shape(
     device_count = jax.device_count() if devices is None else len(devices)
     supported = device_count == np.prod(mesh_shape)
     if not supported:
-        logging.info("Skipping mesh_shape=%s with device_count=%s", mesh_shape, device_count)
-    return supported
+        return supported, f"Skipping mesh_shape={mesh_shape} with device_count={device_count}"
+    return supported, ""
 
 
 def as_local_tensor(x: Tensor) -> NestedTensor:

@@ -77,8 +77,9 @@ class CheckpointerTest(test_utils.TestCase):
     @parameterized.parameters(Checkpointer, OrbaxCheckpointer)
     def test_save_and_restore(self, checkpointer_cls: Type[BaseCheckpointer]):
         mesh_shape = (1, 1)
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
         with _mesh(mesh_shape):
             cfg = _checkpointer_config(checkpointer_cls)
             cfg.save_policy.min_step = 0
@@ -168,10 +169,11 @@ class CheckpointerTest(test_utils.TestCase):
         """Tests that we can save with one sharding and restore with a different sharding."""
         mesh_shape = (4, 2)
         restore_mesh_shape = (2, 4)
-        if not test_utils.is_supported_mesh_shape(
-            mesh_shape
-        ) or not test_utils.is_supported_mesh_shape(restore_mesh_shape):
-            return
+        if (
+            not test_utils.is_supported_mesh_shape(mesh_shape)[0]
+            or not test_utils.is_supported_mesh_shape(restore_mesh_shape)[0]
+        ):
+            pytest.skip("mesh_shape (4,2) or (2,4) not supported.")
 
         cfg = _checkpointer_config(checkpointer_cls)
         ckpt: BaseCheckpointer = cfg.instantiate(parent=None)
@@ -243,8 +245,9 @@ class CheckpointerTest(test_utils.TestCase):
     ):
         # Tests the effect of max_data_shard_degree and shard_threshold_bytes on number of files.
         mesh_shape = (4, 2)
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
 
         cfg: Checkpointer.Config = _checkpointer_config(Checkpointer)
         cfg.storage.max_data_shard_degree = max_data_shard_degree
@@ -289,8 +292,9 @@ class CheckpointerTest(test_utils.TestCase):
     @parameterized.parameters(Checkpointer, OrbaxCheckpointer)
     def test_save_and_restore_latest_valid(self, checkpointer_cls: Type[BaseCheckpointer]):
         mesh_shape = (1, 1)
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
         with _mesh(mesh_shape):
             cfg = _checkpointer_config(checkpointer_cls)
             ckpt: BaseCheckpointer = cfg.instantiate(parent=None)
@@ -335,8 +339,9 @@ class CheckpointerTest(test_utils.TestCase):
     @parameterized.parameters(Checkpointer, OrbaxCheckpointer)
     def test_save_can_override_on_gcs(self, checkpointer_cls: Type[BaseCheckpointer]):
         mesh_shape = (1, 1)
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
         # Patch is_gcs_path for orbax, since it commits differently on gcs vs local.
         with _mesh(mesh_shape), mock.patch(f"{ocp.step.__name__}.is_gcs_path", return_value=True):
             cfg = _checkpointer_config(checkpointer_cls)
@@ -378,8 +383,9 @@ class CheckpointerTest(test_utils.TestCase):
         mesh_shape=[(1, 1), (2, 2), (4, 2)],
     )
     def test_gda(self, checkpointer_cls, mesh_shape):
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
         with _mesh(mesh_shape):
             cfg = _checkpointer_config(checkpointer_cls)
             ckpt: Checkpointer = cfg.instantiate(parent=None)
@@ -409,8 +415,9 @@ class CheckpointerTest(test_utils.TestCase):
     )
     def test_custom_dict(self, checkpointer_cls, custom_dict_type):
         mesh_shape = (1, 1)
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
         with _mesh(mesh_shape):
             cfg = _checkpointer_config(checkpointer_cls)
             ckpt: Checkpointer = cfg.instantiate(parent=None)
@@ -434,8 +441,9 @@ class CheckpointerTest(test_utils.TestCase):
     @parameterized.parameters([Checkpointer, OrbaxCheckpointer])
     def test_input_iterator(self, checkpointer_cls):
         mesh_shape = (1, 1)
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
         with _mesh(mesh_shape):
             cfg = _checkpointer_config(checkpointer_cls)
             ckpt: Checkpointer = cfg.instantiate(parent=None)
@@ -486,8 +494,9 @@ class CheckpointerTest(test_utils.TestCase):
         if not _GRAIN_INSTALLED:
             self.skipTest("Cannot run when grain is not installed.")
         mesh_shape = (1, 1)
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
         with _mesh(mesh_shape):
             cfg = _checkpointer_config(checkpointer_cls)
             ckpt: Checkpointer = cfg.instantiate(parent=None)
@@ -587,8 +596,9 @@ class CheckpointerTest(test_utils.TestCase):
         listdir_add_trailing_slash: bool,
     ):
         mesh_shape = (1, 1)
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
 
         orig_tf_listdir = tf.io.gfile.listdir
 
@@ -721,8 +731,9 @@ class CheckpointerTest(test_utils.TestCase):
 
     def test_stop(self):
         mesh_shape = (1, 1)
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
         cfg = _checkpointer_config()
         ckpt: Checkpointer = cfg.instantiate(parent=None)
         # GC thread is not started until the start_gc_thread() call.
@@ -785,8 +796,9 @@ class CheckpointerTest(test_utils.TestCase):
 
     def test_summary_writer_checkpoint(self):
         mesh_shape = (1, 1)
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
         with _mesh(mesh_shape):
             cfg = _checkpointer_config()
             cfg.summary_writer = SummaryWriter.default_config()
@@ -817,8 +829,9 @@ class CheckpointerTest(test_utils.TestCase):
                 raise ValueError("Unsupported metric type!")
 
         mesh_shape = (1, 1)
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
 
         with _mesh(mesh_shape):
             cfg = _checkpointer_config(checkpointer_cls).set(
@@ -860,8 +873,9 @@ class CheckpointerTest(test_utils.TestCase):
     @parameterized.parameters([Checkpointer, OrbaxCheckpointer])
     def test_best_metric_policy_value_error(self, checkpointer_cls):
         mesh_shape = (1, 1)
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
 
         with _mesh(mesh_shape):
             cfg = _checkpointer_config(checkpointer_cls).set(
@@ -954,8 +968,9 @@ class CheckpointerTest(test_utils.TestCase):
     @parameterized.parameters([Checkpointer, OrbaxCheckpointer])
     def test_read_state_spec(self, checkpointer_cls: Type[BaseCheckpointer]):
         mesh_shape = (1, 1)
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
         with _mesh(mesh_shape):
             cfg = _checkpointer_config(checkpointer_cls)
             cfg.save_policy.min_step = 0
@@ -991,8 +1006,9 @@ class CheckpointerTest(test_utils.TestCase):
         can still restore old checkpoints created using the old VDict version.
         """
         mesh_shape = (1, 1)
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
 
         # Subclass VDict so that VDict-specific code works the same with this class.
         # The pytree flattening / serialization logic is defined explicitly for this subclass
@@ -1102,8 +1118,9 @@ class TensorStoreStateStorageTest(test_utils.TestCase):
     @parameterized.parameters(jnp.float32, jnp.bfloat16, jnp.int32, jnp.int16)
     def test_save_and_restore_from_dir(self, restore_floats_as: jnp.dtype):
         mesh_shape = (1, 1)
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
 
         def make_state(float_dtype):
             return dict(x=jnp.zeros([], dtype=jnp.int32), y=jnp.ones([2], dtype=float_dtype))
@@ -1137,8 +1154,9 @@ class TensorStoreStateStorageTest(test_utils.TestCase):
     def test_save_to_dir_async(self):
         """Tests that serialization happens async."""
         mesh_shape = (1, 1)
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
         with _mesh(mesh_shape):
             storage = TensorStoreStateStorage.default_config().instantiate()
             with tempfile.TemporaryDirectory() as temp_dir:
