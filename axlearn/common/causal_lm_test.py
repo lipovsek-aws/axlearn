@@ -342,7 +342,7 @@ class ModelMetricsTest(TestCase):
             self.assertTrue(jnp.allclose(aux["per_label_loss"], ref_outputs["per_token_loss"]))
 
     @pytest.mark.skipif(
-        jax.device_count() is (64 if jax.default_backend() == "neuron" else 4)
+        jax.device_count() != (64 if jax.default_backend() == "neuron" else 4)
         or jax.process_count() != 1,
         reason="Incorrect device & process count for mesh.",
     )
@@ -401,7 +401,7 @@ class ModelMetricsTest(TestCase):
 
             # Five (out of six) tensors were sharded.
             self.assertEqual(
-                hlo_text.count('custom_call_target="Sharding"'), 5 if jax.device_count() == 8 else 7
+                hlo_text.count('custom_call_target="Sharding"'), 7
             )
             # For the [batch, seq_len] tensors.
             self.assertEqual(
