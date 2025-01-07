@@ -400,9 +400,7 @@ class ModelMetricsTest(TestCase):
             hlo_text = fn.lower(input_batch).compiler_ir(dialect="hlo").as_hlo_text()
 
             # Five (out of six) tensors were sharded.
-            self.assertEqual(
-                hlo_text.count('custom_call_target="Sharding"'), 7
-            )
+            self.assertEqual(hlo_text.count('custom_call_target="Sharding"'), 7)
             # For the [batch, seq_len] tensors.
             self.assertEqual(
                 hlo_text.count(f"sharding={{devices=[{x},{y}]<=[{jax.device_count()}]}}"), 6
