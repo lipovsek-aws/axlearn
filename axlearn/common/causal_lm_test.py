@@ -342,7 +342,8 @@ class ModelMetricsTest(TestCase):
             self.assertTrue(jnp.allclose(aux["per_label_loss"], ref_outputs["per_token_loss"]))
 
     @pytest.mark.skipif(
-        jax.device_count() != 4 or jax.process_count() != 1,
+        jax.device_count() != (64 if jax.default_backend() == "neuron" else 4)
+        or jax.process_count() != 1,
         reason="Incorrect device & process count for mesh.",
     )
     def test_constrain_input_batch(self):
@@ -366,8 +367,8 @@ class ModelMetricsTest(TestCase):
             )
             .instantiate(parent=None)
         )
-        batch_size = 4
-        seq_len = 8
+        batch_size = jax.device_count()
+        seq_len = 64
         input_batch = {
             "input_ids": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
             "target_labels": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
@@ -378,9 +379,9 @@ class ModelMetricsTest(TestCase):
             "input_segment_ids": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
             "input_positions": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
         }
-
+        x, y = 2, int(jax.device_count() / 2)
         with jax.sharding.Mesh(
-            np.array(jax.devices()).reshape(2, 2)[:, :, None, None, None],
+            np.array(jax.devices()).reshape(x, y)[:, :, None, None, None],
             axis_names=("data", "seq", "expert", "fsdp", "model"),
         ):
             # Check that no values are dropped when applying the constraint.
@@ -399,12 +400,18 @@ class ModelMetricsTest(TestCase):
             hlo_text = fn.lower(input_batch).compiler_ir(dialect="hlo").as_hlo_text()
 
             # Five (out of six) tensors were sharded.
-            self.assertEqual(hlo_text.count('custom_call_target="Sharding"'), 5)
+            self.assertEqual(hlo_text.count('custom_call_target="Sharding"'), 7)
             # For the [batch, seq_len] tensors.
-            self.assertEqual(hlo_text.count("sharding={devices=[2,2]<=[4]}"), 4)
+            self.assertEqual(
+                hlo_text.count(f"sharding={{devices=[{x},{y}]<=[{jax.device_count()}]}}"), 6
+            )
             # For the [batch,] tensor.
             self.assertEqual(
-                hlo_text.count("sharding={devices=[2,2]<=[4] last_tile_dim_replicate}"), 1
+                hlo_text.count(
+                    # pylint: disable-next=line-too-long
+                    f"sharding={{devices=[{x},{y}]<=[{jax.device_count()}] last_tile_dim_replicate}}"
+                ),
+                1,
             )
 
 
