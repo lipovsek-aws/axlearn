@@ -10,6 +10,7 @@ from typing import Any, NamedTuple, Optional
 import jax
 import numpy as np
 import optax
+import pytest
 from absl import logging
 from absl.testing import absltest, parameterized
 from jax import numpy as jnp
@@ -856,8 +857,9 @@ class OptimizerTest(TestCase):
         )
 
         mesh_shape = (1, 1)
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
         with _mesh(mesh_shape):
             cfg = _checkpointer_config()
             cfg.save_policy.min_step = 0

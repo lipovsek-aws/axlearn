@@ -336,8 +336,9 @@ class TestFlashAttention(TestCase):
 
     @parameterized.parameters(_TEST_CONFIGS)
     def test_shard_biases(self, batch, seq_len, num_heads, per_head_dim, mesh, mesh_axis_names):
-        if not is_supported_mesh_shape(mesh):
-            pytest.skip(reason=f"Unsupported mesh {mesh}.")
+        mesh_support, reason = is_supported_mesh_shape(mesh)
+        if not mesh_support:
+            pytest.skip(reason)
 
         def as_tensor_bias(bias: Tensor) -> CompositeAttentionBias:
             return CompositeAttentionBias([TensorAttentionBias(bias)])
@@ -409,8 +410,9 @@ class TestFlashAttention(TestCase):
         input_dtype,
         dropout_rate,
     ):
-        if not is_supported_mesh_shape(mesh):
-            pytest.skip(reason=f"Unsupported mesh {mesh}.")
+        mesh_support, reason = is_supported_mesh_shape(mesh)
+        if not mesh_support:
+            pytest.skip(reason)
         if not causal and sliding_window_size is not None:
             pytest.skip(reason="Sliding window attention must be causal.")
         if causal and use_bias:
@@ -494,8 +496,9 @@ class TestFlashAttention(TestCase):
         set_layer_bias_recursively,
         dropout_rate,
     ):
-        if not is_supported_mesh_shape(mesh):
-            pytest.skip(reason=f"Unsupported mesh {mesh}.")
+        mesh_support, reason = is_supported_mesh_shape(mesh)
+        if not mesh_support:
+            pytest.skip(reason)
         if use_segment_ids and query_len_multiplier != 1:
             pytest.skip("Segment IDs are not supported for Q and K with different lengths.")
         if not causal and sliding_window_size is not None:
@@ -644,8 +647,9 @@ class TestFlashAttention(TestCase):
         seq_len = 16
         dtype = jnp.bfloat16
 
-        if not is_supported_mesh_shape(mesh):
-            pytest.skip(reason=f"Unsupported mesh {mesh}.")
+        mesh_support, reason = is_supported_mesh_shape(mesh)
+        if not mesh_support:
+            pytest.skip(reason)
         if not causal and sliding_window_size is not None:
             pytest.skip(reason="Sliding window attention must be causal.")
 

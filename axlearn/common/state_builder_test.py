@@ -1385,8 +1385,9 @@ class TensorStoreStateStorageBuilderTest(TestCase):
 
     def test_build(self):
         mesh_shape = (1, 1)
-        if not is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
 
         with tempfile.TemporaryDirectory() as root_dir, _mesh(mesh_shape):
             state = _make_state(float_dtype=jnp.float32)
@@ -1427,8 +1428,9 @@ class OrbaxStateBuilderTest(TestCase):
 
     def test_build(self):
         mesh_shape = (1, 1)
-        if not is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
 
         with tempfile.TemporaryDirectory() as root_dir, _mesh(mesh_shape):
             state = _make_state(float_dtype=jnp.float32)

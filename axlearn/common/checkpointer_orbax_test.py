@@ -13,6 +13,7 @@ from typing import Sequence
 
 import jax
 import orbax.checkpoint as ocp
+import pytest
 from jax import numpy as jnp
 from jax.experimental import mesh_utils
 
@@ -30,8 +31,9 @@ class OrbaxCheckpointerTest(test_utils.TestCase):
     def test_index(self):
         """Tests that index files saved with orbax can be read with `read_index_file`."""
         mesh_shape = (1, 1)
-        if not test_utils.is_supported_mesh_shape(mesh_shape):
-            return
+        mesh_support, reason = test_utils.is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
         with _mesh(mesh_shape), tempfile.TemporaryDirectory() as temp_dir:
             ckpt = (
                 OrbaxCheckpointer.default_config()

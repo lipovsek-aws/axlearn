@@ -591,8 +591,9 @@ class TreeUtilsTest(TestCase):
         ((1, 1, 1), ("pipeline", "data", "model")),
     )
     def test_input_partition_spec(self, mesh_shape, mesh_axis_names):
-        if not is_supported_mesh_shape(mesh_shape):
-            pytest.skip(reason=f"Unsupported mesh {mesh_shape}.")
+        mesh_support, reason = is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
         devices = mesh_utils.create_device_mesh(mesh_shape)
         with jax.sharding.Mesh(devices, mesh_axis_names):
             self.assertSequenceEqual(
@@ -612,8 +613,9 @@ class TreeUtilsTest(TestCase):
         mesh_axis_names: Sequence[str],
         batch_axis_names: Sequence[str],
     ):
-        if not is_supported_mesh_shape(mesh_shape):
-            pytest.skip(reason=f"Unsupported mesh {mesh_shape}.")
+        mesh_support, reason = is_supported_mesh_shape(mesh_shape)
+        if not mesh_support:
+            pytest.skip(reason)
         devices = mesh_utils.create_device_mesh(mesh_shape)
         with jax.sharding.Mesh(devices, mesh_axis_names):
             sharded_batch = dispatch_input_batch(
